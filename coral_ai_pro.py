@@ -155,9 +155,7 @@ with st.sidebar:
     
     enable_3d = st.checkbox("Generate 3D Model", True)
     enable_taxonomy = st.checkbox("Show Full Taxonomy", True)
-    save_to_db = st.checkbox("Save to Database", False)
-    st.caption("⚠️ Database saving disabled on cloud")
-
+    save_to_db = st.checkbox("Save to Database", True)
     
     st.markdown("---")
     
@@ -429,35 +427,28 @@ if uploaded_file is not None:
                 """)
             
             # Save to database
-            # Save to database (disabled on Streamlit Cloud) 
             if save_to_db and species_info:
-                try:
-                    analysis_data = {
-                        'filename': uploaded_file.name,
-                        'timestamp': datetime.now().isoformat(),
-                        'predicted_species': species_info.get('common_name', 'Unknown'),
-                        'confidence': species_confidence,
-                        'health_status': health_status,
-                        'health_confidence': health_confidence,
-                        'bleaching_percentage': bleaching_percentage,
-                        'family': species_info.get('family', 'Unknown'),
-                        'genus': species_info.get('genus', 'Unknown'),
-                        'insights': [
-                            f"Morphology: {morphology}",
-                            f"Health: {health_status}",
-                            f"Bleaching: {bleaching_percentage:.1f}%",
-                            f"Species: {species_info.get('common_name', 'Unknown')}"
-                        ]
-                    }
-        
-                    db.save_analysis(analysis_data)
-                    st.balloons()
-                    st.success("✅ Analysis saved to database with full taxonomy!")
-                except Exception as e:
-        # Database saving disabled on cloud - show analysis without saving
-                    st.balloons()
-                    st.info("📊 Analysis complete! (Database saving disabled on cloud deployment)")
-
+                analysis_data = {
+                    'filename': uploaded_file.name,
+                    'timestamp': datetime.now().isoformat(),
+                    'predicted_species': species_info.get('common_name', 'Unknown'),
+                    'confidence': species_confidence,
+                    'health_status': health_status,
+                    'health_confidence': health_confidence,
+                    'bleaching_percentage': bleaching_percentage,
+                    'family': species_info.get('family', 'Unknown'),
+                    'genus': species_info.get('genus', 'Unknown'),
+                    'insights': [
+                        f"Morphology: {morphology}",
+                        f"Health: {health_status}",
+                        f"Bleaching: {bleaching_percentage:.1f}%",
+                        f"Species: {species_info.get('common_name', 'Unknown')}"
+                    ]
+                }
+                
+                db.save_analysis(analysis_data)
+                st.balloons()
+                st.success("✅ Analysis saved to database with full taxonomy!")
         
         else:
             # Waiting for analysis
