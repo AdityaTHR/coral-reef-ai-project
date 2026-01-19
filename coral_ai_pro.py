@@ -71,21 +71,7 @@ st.markdown("""
         text-align: center;
         background: #E3F2FD;
         margin: 1rem 0;
-        color: #0D47A1;  /* ADD THIS LINE */
     }
-    
-    /* ADD THESE NEW RULES */
-    .upload-area h3 {
-        color: #0D47A1 !important;
-        font-weight: 600;
-    }
-    .upload-area p {
-        color: #1565C0 !important;
-    }
-    .upload-area b {
-        color: #0D47A1 !important;
-    }
-    
     .progress-bar {
         height: 10px;
         border-radius: 5px;
@@ -99,7 +85,6 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
 
 # Initialize components
 @st.cache_resource
