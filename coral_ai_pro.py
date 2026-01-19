@@ -8,6 +8,68 @@ import plotly.graph_objects as go
 from datetime import datetime
 import os
 import json
+# Fallback species data (works without database)
+CORAL_SPECIES_DATA = {
+    'branching': {
+        'common_name': 'Staghorn Coral',
+        'scientific_name': 'Acropora cervicornis',
+        'family': 'Acroporidae',
+        'genus': 'Acropora',
+        'morphology': 'Branching',
+        'conservation_status': 'Critically Endangered',
+        'typical_size_cm': '200-300',
+        'bleaching_resistance': 'Low',
+        'image_features': 'Tree-like branching structure'
+    },
+    'boulder': {
+        'common_name': 'Brain Coral',
+        'scientific_name': 'Diploria labyrinthiformis',
+        'family': 'Faviidae',
+        'genus': 'Diploria',
+        'morphology': 'Boulder',
+        'conservation_status': 'Vulnerable',
+        'typical_size_cm': '100-200',
+        'bleaching_resistance': 'Medium',
+        'image_features': 'Massive boulder with brain patterns'
+    },
+    'plate': {
+        'common_name': 'Table Coral',
+        'scientific_name': 'Acropora hyacinthus',
+        'family': 'Acroporidae',
+        'genus': 'Acropora',
+        'morphology': 'Plate',
+        'conservation_status': 'Near Threatened',
+        'typical_size_cm': '100-150',
+        'bleaching_resistance': 'Low',
+        'image_features': 'Flat plate-like growth form'
+    },
+    'encrusting': {
+        'common_name': 'Encrusting Coral',
+        'scientific_name': 'Montipora sp.',
+        'family': 'Acroporidae',
+        'genus': 'Montipora',
+        'morphology': 'Encrusting',
+        'conservation_status': 'Least Concern',
+        'typical_size_cm': '50-100',
+        'bleaching_resistance': 'High',
+        'image_features': 'Low encrusting growth pattern'
+    }
+}
+
+def get_species_info(morphology):
+    """Get species info without database"""
+    morph_key = morphology.lower()
+    
+    if 'branching' in morph_key:
+        return CORAL_SPECIES_DATA['branching'], 87
+    elif 'boulder' in morph_key:
+        return CORAL_SPECIES_DATA['boulder'], 85
+    elif 'plate' in morph_key or 'table' in morph_key:
+        return CORAL_SPECIES_DATA['plate'], 83
+    elif 'encrusting' in morph_key:
+        return CORAL_SPECIES_DATA['encrusting'], 82
+    else:
+        return CORAL_SPECIES_DATA['branching'], 75
 
 # Import our advanced modules
 from coral_database_advanced import AdvancedCoralDatabase
@@ -71,7 +133,21 @@ st.markdown("""
         text-align: center;
         background: #E3F2FD;
         margin: 1rem 0;
+        color: #0D47A1;  /* ADD THIS LINE */
     }
+    
+    /* ADD THESE NEW RULES */
+    .upload-area h3 {
+        color: #0D47A1 !important;
+        font-weight: 600;
+    }
+    .upload-area p {
+        color: #1565C0 !important;
+    }
+    .upload-area b {
+        color: #0D47A1 !important;
+    }
+    
     .progress-bar {
         height: 10px;
         border-radius: 5px;
@@ -86,19 +162,21 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
 # Initialize components
+@st.cache_resource
+# Initialize components (database-free for cloud)
 @st.cache_resource
 def init_components():
     return {
-        'db': AdvancedCoralDatabase(),
         'health_analyzer': AdvancedCoralHealthAnalyzer(),
         'enhancer': CoralImageEnhancer()
     }
 
 components = init_components()
-db = components['db']
 health_analyzer = components['health_analyzer']
 enhancer = components['enhancer']
+
 
 # Header
 st.markdown('<h1 class="main-header">🌊 Coral AI Pro</h1>', unsafe_allow_html=True)
@@ -140,17 +218,18 @@ with st.sidebar:
     
     enable_3d = st.checkbox("Generate 3D Model", True)
     enable_taxonomy = st.checkbox("Show Full Taxonomy", True)
-    save_to_db = st.checkbox("Save to Database", True)
+    save_to_db = st.checkbox("Save to Database", False)
+    st.caption("⚠️ Database saving disabled on cloud")
+
     
     st.markdown("---")
     
     # Statistics
+    # Statistics
     st.markdown("### 📊 Statistics")
-    try:
-        analyses = db.get_all_species()
-        st.metric("Coral Species", len(analyses))
-    except:
-        st.metric("Coral Species", "9+")
+    st.metric("Coral Species", "4")
+    st.caption("Branching, Boulder, Plate, Encrusting")
+
     
     st.markdown("---")
     
@@ -227,10 +306,9 @@ if uploaded_file is not None:
             status_text.text("Step 4/5: Identifying species...")
             time.sleep(1)
             
-            # Step 4: Species identification
-            # Use morphology to get species from database
-            image_features = f"{morphology.lower()} coral"
-            species_info, species_confidence = db.identify_coral(image_features)
+            # Step 4: Species identification (using fallback data)
+            species_info, species_confidence = get_species_info(morphology)
+
             
             # Update progress
             with progress_container:
@@ -412,28 +490,35 @@ if uploaded_file is not None:
                 """)
             
             # Save to database
+            # Save to database (disabled on Streamlit Cloud) 
             if save_to_db and species_info:
-                analysis_data = {
-                    'filename': uploaded_file.name,
-                    'timestamp': datetime.now().isoformat(),
-                    'predicted_species': species_info.get('common_name', 'Unknown'),
-                    'confidence': species_confidence,
-                    'health_status': health_status,
-                    'health_confidence': health_confidence,
-                    'bleaching_percentage': bleaching_percentage,
-                    'family': species_info.get('family', 'Unknown'),
-                    'genus': species_info.get('genus', 'Unknown'),
-                    'insights': [
-                        f"Morphology: {morphology}",
-                        f"Health: {health_status}",
-                        f"Bleaching: {bleaching_percentage:.1f}%",
-                        f"Species: {species_info.get('common_name', 'Unknown')}"
-                    ]
-                }
-                
-                db.save_analysis(analysis_data)
-                st.balloons()
-                st.success("✅ Analysis saved to database with full taxonomy!")
+                try:
+                    analysis_data = {
+                        'filename': uploaded_file.name,
+                        'timestamp': datetime.now().isoformat(),
+                        'predicted_species': species_info.get('common_name', 'Unknown'),
+                        'confidence': species_confidence,
+                        'health_status': health_status,
+                        'health_confidence': health_confidence,
+                        'bleaching_percentage': bleaching_percentage,
+                        'family': species_info.get('family', 'Unknown'),
+                        'genus': species_info.get('genus', 'Unknown'),
+                        'insights': [
+                            f"Morphology: {morphology}",
+                            f"Health: {health_status}",
+                            f"Bleaching: {bleaching_percentage:.1f}%",
+                            f"Species: {species_info.get('common_name', 'Unknown')}"
+                        ]
+                    }
+        
+                    db.save_analysis(analysis_data)
+                    st.balloons()
+                    st.success("✅ Analysis saved to database with full taxonomy!")
+                except Exception as e:
+        # Database saving disabled on cloud - show analysis without saving
+                    st.balloons()
+                    st.info("📊 Analysis complete! (Database saving disabled on cloud deployment)")
+
         
         else:
             # Waiting for analysis
