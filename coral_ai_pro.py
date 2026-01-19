@@ -185,16 +185,7 @@ if uploaded_file is not None:
         upload_path = tmp_file.name
     
     # Display in two columns
-    # Display original image only (full width for analysis)
-    st.markdown('<h3 class="sub-header">📷 Original Image</h3>', unsafe_allow_html=True)
-    st.image(upload_path, use_column_width=True)
-    
-    # Image stats
-    img_cv = cv2.imread(upload_path)
-    if img_cv is not None:
-        h, w = img_cv.shape[:2]
-        st.caption(f"Resolution: {w} × {h} pixels | Size: {uploaded_file.size / 1024:.1f} KB")
-
+    col1, col2 = st.columns(2)
     
     with col1:
         st.markdown('<h3 class="sub-header">📷 Original Image</h3>', unsafe_allow_html=True)
@@ -265,86 +256,37 @@ if uploaded_file is not None:
             time.sleep(0.5)
             
             # Display results
-            # Display results
             st.markdown("---")
             st.markdown('<h2 class="sub-header">📊 Analysis Results</h2>', unsafe_allow_html=True)
             
-            # Results in metric cards - FULL WIDTH
+            # Results in metric cards
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                st.markdown(f"""
-                <div class="metric-card">
-                    <h3 style="color: #1E88E5; margin: 0;">Coral Type</h3>
-                    <p style="font-size: 1.5rem; font-weight: bold; color: #0D47A1; margin: 0.5rem 0;">{morphology}</p>
-                    <p style="color: #666; font-size: 0.9rem;">{species_confidence}% confidence</p>
-                    <p style="color: #888; font-size: 0.8rem;">Morphology</p>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+                st.metric("Coral Type", morphology, f"{species_confidence}%")
+                st.caption("Morphology")
+                st.markdown('</div>', unsafe_allow_html=True)
             
             with col2:
-                # Determine card color class
-                if "BLEACHED" in health_status:
-                    card_style = "background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%); border: 2px solid #FF5252;"
-                    status_color = "#D32F2F"
-                    icon = "🚨"
-                elif "STRESS" in health_status or "WATCH" in health_status:
-                    card_style = "background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); border: 2px solid #FF9800;"
-                    status_color = "#F57C00"
-                    icon = "⚠️"
-                else:
-                    card_style = "background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border: 2px solid #4CAF50;"
-                    status_color = "#388E3C"
-                    icon = "✅"
-                
-                status_text = health_status.split()[0] if health_status else "Unknown"
-                
-                st.markdown(f"""
-                <div style="{card_style} padding: 1.5rem; border-radius: 15px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="color: {status_color}; margin: 0;">Health Status {icon}</h3>
-                    <p style="font-size: 1.5rem; font-weight: bold; color: {status_color}; margin: 0.5rem 0;">{status_text}</p>
-                    <p style="color: #666; font-size: 0.9rem;">{health_confidence:.1f}% confidence</p>
-                    <p style="color: #888; font-size: 0.8rem;">{bleaching_percentage:.1f}% bleached</p>
-                </div>
-                """, unsafe_allow_html=True)
+                card_class = "bleached-card" if "BLEACHED" in health_status else "healthy-card"
+                st.markdown(f'<div class="metric-card {card_class}">', unsafe_allow_html=True)
+                st.metric("Health Status", health_status.split()[0], f"{health_confidence:.1f}%")
+                st.caption(f"{bleaching_percentage:.1f}% bleached")
+                st.markdown('</div>', unsafe_allow_html=True)
             
             with col3:
                 if species_info:
-                    common_name = species_info.get('common_name', 'Unknown')
-                    scientific = species_info.get('scientific_name', '')
-                    
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <h3 style="color: #1E88E5; margin: 0;">Species</h3>
-                        <p style="font-size: 1.3rem; font-weight: bold; color: #0D47A1; margin: 0.5rem 0;">{common_name}</p>
-                        <p style="color: #666; font-size: 0.85rem; font-style: italic;">{scientific}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+                    st.metric("Species", species_info.get('common_name', 'Unknown'))
+                    st.caption(species_info.get('scientific_name', ''))
+                    st.markdown('</div>', unsafe_allow_html=True)
             
             with col4:
-                if species_info:
-                    conservation = species_info.get('conservation_status', 'Unknown')
-                    
-                    # Color code conservation status
-                    if conservation in ['Critically Endangered', 'Endangered']:
-                        cons_color = "#D32F2F"
-                        cons_bg = "linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%)"
-                    elif conservation in ['Vulnerable', 'Near Threatened']:
-                        cons_color = "#F57C00"
-                        cons_bg = "linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%)"
-                    else:
-                        cons_color = "#388E3C"
-                        cons_bg = "linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)"
-                    
-                    st.markdown(f"""
-                    <div style="background: {cons_bg}; padding: 1.5rem; border-radius: 15px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid {cons_color};">
-                        <h3 style="color: {cons_color}; margin: 0;">Conservation</h3>
-                        <p style="font-size: 1.2rem; font-weight: bold; color: {cons_color}; margin: 0.5rem 0;">{conservation}</p>
-                        <p style="color: #888; font-size: 0.8rem;">Status</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-            
+                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+                st.metric("Conservation", species_info.get('conservation_status', 'Unknown') if species_info else "N/A")
+                st.caption("Status")
+                st.markdown('</div>', unsafe_allow_html=True)
             
             # Detailed taxonomy
             if enable_taxonomy and species_info:
@@ -354,37 +296,13 @@ if uploaded_file is not None:
                 tax_col1, tax_col2, tax_col3, tax_col4 = st.columns(4)
                 
                 with tax_col1:
-                    st.markdown(f"""
-                    <div style="background: #E3F2FD; padding: 1rem; border-radius: 10px; border-left: 4px solid #1E88E5;">
-                        <p style="color: #0D47A1; font-weight: bold; margin: 0;">Family:</p>
-                        <p style="color: #1565C0; font-size: 1.1rem; margin: 0.5rem 0 0 0;">{species_info.get('family', 'Unknown')}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
+                    st.info(f"**Family:** {species_info.get('family', 'Unknown')}")
                 with tax_col2:
-                    st.markdown(f"""
-                    <div style="background: #E3F2FD; padding: 1rem; border-radius: 10px; border-left: 4px solid #1E88E5;">
-                        <p style="color: #0D47A1; font-weight: bold; margin: 0;">Genus:</p>
-                        <p style="color: #1565C0; font-size: 1.1rem; margin: 0.5rem 0 0 0;">{species_info.get('genus', 'Unknown')}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
+                    st.info(f"**Genus:** {species_info.get('genus', 'Unknown')}")
                 with tax_col3:
-                    st.markdown(f"""
-                    <div style="background: #E3F2FD; padding: 1rem; border-radius: 10px; border-left: 4px solid #1E88E5;">
-                        <p style="color: #0D47A1; font-weight: bold; margin: 0;">Morphology:</p>
-                        <p style="color: #1565C0; font-size: 1.1rem; margin: 0.5rem 0 0 0;">{species_info.get('morphology', 'Unknown')}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
+                    st.info(f"**Morphology:** {species_info.get('morphology', 'Unknown')}")
                 with tax_col4:
-                    st.markdown(f"""
-                    <div style="background: #E3F2FD; padding: 1rem; border-radius: 10px; border-left: 4px solid #1E88E5;">
-                        <p style="color: #0D47A1; font-weight: bold; margin: 0;">Size:</p>
-                        <p style="color: #1565C0; font-size: 1.1rem; margin: 0.5rem 0 0 0;">~{species_info.get('typical_size_cm', 'N/A')} cm</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
+                    st.info(f"**Size:** ~{species_info.get('typical_size_cm', 'N/A')} cm")
             
             # 3D Visualization
             if enable_3d:
